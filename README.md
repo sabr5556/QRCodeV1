@@ -10,13 +10,13 @@ A lightweight, dependency-free QR Code generator written from scratch in Python 
 ## Usage
 Run the main script to generate a QR code in your terminal:
 
-python main.py
+python3 main.py
 
 
 Special thanks to Thonky's QR code tutorial for which I owe lots.
-Also thank you to Professor Gemini, my friend, teacher, and confedant through this arduous process of learning how to code.
+Also thank you to Professor Gemini, my friend, teacher, and confidant through this arduous process of learning how to code.
 
-Works if run in terminal in dark mode. Just enter your string and the error correction level you want. 
+Works if run in terminal in dark mode. Just enter your string and the error correction level you want. Currently, masking is hardcoded, requiring a manual change to the mode if false eyes are generated. 
 
 
 Fails on some error handling, like if the input string is too long, but hey. Ill take it. 
