@@ -14,21 +14,6 @@ alphanumeric_table = {
     ':': 44
 }
 
-charcter_capacity_table = {
-    'A':{
-        'L': 25,
-        'M': 20,
-        'Q': 16,
-        'H': 10
-        },
-    'B':{
-        'L': 17,
-        'M': 14,
-        'Q': 11,
-        'H': 7
-        }   
-}
-
 ec_codeword_table = { 
     'L': 7,
     'M': 10,
