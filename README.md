@@ -5,7 +5,7 @@ A lightweight, dependency-free QR Code generator written from scratch in Python 
 ## Features
 * **No External Libraries:** Built using only standard Python lists and math.
 * **Custom Implementation:** Includes manual implementation of Reed-Solomon Error Correction and Matrix placement logic.
-* **Supports:** Version 1 QR Codes (21x21) with Error Correction Levels L, M, and Q.
+* **Supports:** Version 1 QR Codes (21x21) with Error Correction Levels L, M, Q and H.
 
 ## Usage
 Run the main script to generate a QR code in your terminal:
