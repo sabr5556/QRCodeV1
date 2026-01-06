@@ -185,7 +185,6 @@ class QRCodeMatrix:
         bits = qrt.format_info_table[ec_level.upper()][mask_pattern]
         
         # --- COPY 1 (Top-Left) ---
-        # Your original coordinates were correct for MSB->LSB placement
         # (8,0) is Bit 14 (Index 0), (0,8) is Bit 0 (Index 14)
         coords = [
             (8, 0), (8, 1), (8, 2), (8, 3), (8, 4), (8, 5), (8, 7), (8, 8), 
@@ -223,21 +222,149 @@ class QRCodeMatrix:
             bit_index = 7 - i
             self.grid[r][c] = int(bits[bit_index])
 
+    def calculate_penalty(self):
+        '''
+        Calculates the ISO/IEC 18004 penalty score for the current grid.
+        Lower is better.
+        '''
+        score = 0
+        score += self._penalty_rule_1()
+        score += self._penalty_rule_2()
+        score += self._penalty_rule_3()
+        score += self._penalty_rule_4()
+        return score
+
+    def _penalty_rule_1(self):
+        '''
+        Rule 1: 5 or more same-colored modules in a row/column.
+        Score = 3 + (count - 5)
+        '''
+        penalty = 0
+        
+        # Check Rows
+        for r in range(self.size):
+            count = 0
+            current_color = None
+            for c in range(self.size):
+                module = self.grid[r][c]
+                if module == current_color:
+                    count += 1
+                else:
+                    if count >= 5:
+                        penalty += 3 + (count - 5)
+                    count = 1
+                    current_color = module
+            if count >= 5: # Don't forget the end of the row
+                penalty += 3 + (count - 5)
+
+        # Check Columns
+        for c in range(self.size):
+            count = 0
+            current_color = None
+            for r in range(self.size):
+                module = self.grid[r][c]
+                if module == current_color:
+                    count += 1
+                else:
+                    if count >= 5:
+                        penalty += 3 + (count - 5)
+                    count = 1
+                    current_color = module
+            if count >= 5:
+                penalty += 3 + (count - 5)
+                
+        return penalty
+
+    def _penalty_rule_2(self):
+        '''
+        Rule 2: 2x2 blocks of the same color.
+        Score = 3 * (number of blocks)
+        '''
+        penalty = 0
+        for r in range(self.size - 1):
+            for c in range(self.size - 1):
+                # Check if (r,c), (r+1,c), (r,c+1), (r+1,c+1) are all same
+                val = self.grid[r][c]
+                if (val == self.grid[r+1][c] and 
+                    val == self.grid[r][c+1] and 
+                    val == self.grid[r+1][c+1]):
+                    penalty += 3
+        return penalty
+
+    def _penalty_rule_3(self):
+        '''
+        Rule 3: Patterns that look like Finder Patterns (1011101).
+        Score = 40 for each occurrence.
+        '''
+        pattern = [1, 0, 1, 1, 1, 0, 1]
+        penalty = 0
+
+        # Helper to check a slice
+        def check_slice(arr):
+            for i in range(len(arr) - 6):
+                if arr[i:i+7] == pattern:
+                    # ISO Check: Must have 4 white spaces on either side
+                    # (or be at edge of matrix)
+                    
+                    # Check Left Side (index i-4 to i)
+                    left_safe = False
+                    if i < 4: # At edge
+                        left_safe = True
+                    elif arr[i-4:i] == [0, 0, 0, 0]:
+                        left_safe = True
+                        
+                    # Check Right Side (index i+7 to i+11)
+                    right_safe = False
+                    if i + 7 > len(arr) - 4: # At edge
+                        right_safe = True
+                    elif arr[i+7:i+11] == [0, 0, 0, 0]:
+                        right_safe = True
+
+                    if left_safe or right_safe:
+                        return 40
+            return 0
+
+        # Check Rows
+        for r in range(self.size):
+            row_data = self.grid[r]
+            penalty += check_slice(row_data)
+
+        # Check Cols
+        for c in range(self.size):
+            col_data = [self.grid[r][c] for r in range(self.size)]
+            penalty += check_slice(col_data)
+
+        return penalty
+
+    def _penalty_rule_4(self):
+        '''
+        Rule 4: Proportion of Dark Modules.
+        Calculate % of dark modules.
+        Steps of 5% deviation from 50% => 10 points each step.
+        '''
+        total_modules = self.size * self.size
+        dark_modules = sum(row.count(1) for row in self.grid)
+        
+        percent = (dark_modules / total_modules) * 100
+        
+        # Determine deviation from 50%
+        # Example: 43% -> deviation 7% -> prev multiple of 5 is 5 -> 1 step
+        # Formula: abs(percent - 50) / 5 * 10
+        
+        prev_multiple_of_5 = int(abs(percent - 50) // 5)
+        return prev_multiple_of_5 * 10
+
     def print_grid(self):
         quiet_zone = 4 # Must be 4 modules wide
         
         # 1. Define the "White" and "Black" pixels for your terminal
-        # Since you have a black background, we use "██" to make light
-        # and "  " (empty space) to make dark.
         white_pixel = "██"
         black_pixel = "  "
         
         # 2. Create the Padding Strings (Side margins)
-        # We multiply the pixel string by the NUMBER of modules (4)
         pad_str = white_pixel * quiet_zone
         
         # 3. Create the Top/Bottom Border
-        # Total width = Left Pad + Grid(21) + Right Pad
         total_width_modules = quiet_zone + self.size + quiet_zone
         white_line = white_pixel * total_width_modules
         

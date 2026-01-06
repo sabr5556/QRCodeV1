@@ -24,16 +24,33 @@ def main():
     final_message = qr.codewords + ec_bytes
     full_bit_string = "".join(f"{x:08b}" for x in final_message)
     
-    print("\n--- GENERATING MATRIX ---")
+
     qr_mat = QRCodeMatrix()
     qr_mat.add_finders()
     qr_mat.place_data_bits(full_bit_string)
 
-    mask_id = 0 # Checkerboard
+    best_score = float('inf')
+    best_mask_id = 0
+    
+    # Try all 8 masks (0-7)
+    for i in range(8):
 
-    print(f"Applying Mask Pattern {mask_id}...")
-    qr_mat.apply_mask(mask_id)
-    qr_mat._place_format_info(mask_id, ec_level) # Write the ID into the grid
+        qr_mat.apply_mask(i)
+        
+        qr_mat._place_format_info(i, ec_level)
+    
+        score = qr_mat.calculate_penalty()
+        
+        if score < best_score:
+            best_score = score
+            best_mask_id = i
+        
+        # Since apply_mask uses XOR, running it again with the same ID flips the bits back to their original state.
+        qr_mat.apply_mask(i)
+
+    # Apply the winner permanently
+    qr_mat.apply_mask(best_mask_id)
+    qr_mat._place_format_info(best_mask_id, ec_level)
     qr_mat.print_grid()
 
 if __name__ == "__main__":
